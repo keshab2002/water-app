@@ -1,19 +1,35 @@
 name: Build Android App
 on: [push]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # 1. Download Code
       - uses: actions/checkout@v3
+
+      # 2. Setup Tools
       - uses: actions/setup-node@v3
         with: { node-version: 18 }
       - run: npm install
-      - run: npx cap add android
+
+      # 3. Handle Android Folder (Creates it if missing, ignores error if exists)
+      - run: npx cap add android || true
       - run: npx cap sync
+
+      # 4. Setup Java
       - uses: actions/setup-java@v3
         with: { distribution: 'zulu', java-version: '17' }
+
+      # 5. FIX PERMISSIONS (The Windows Fix)
+      - name: Make Gradlew Executable
+        run: cd android && chmod +x gradlew
+
+      # 6. Build the App
       - name: Build APK
         run: cd android && ./gradlew assembleDebug
+
+      # 7. Upload for Download
       - uses: actions/upload-artifact@v4
         with:
           name: my-water-app
