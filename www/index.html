@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Water Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+    <div id="settings-screen" class="screen">
+        <h2>Setup Profile</h2>
+        <input type="text" id="user-name" placeholder="Your Name">
+        
+        <label>Daily Goal (Liters)</label>
+        <select id="goal-liters">
+            <option value="3000">3 Liters</option>
+            <option value="4000">4 Liters</option>
+            <option value="5000">5 Liters</option>
+            <option value="6000">6 Liters</option>
+        </select>
+
+        <label>Wake Up Time</label>
+        <input type="time" id="start-time" value="08:00">
+        
+        <label>Bed Time</label>
+        <input type="time" id="end-time" value="23:00">
+
+        <button onclick="saveSettings()">Start Tracking</button>
+    </div>
+
+    <div id="dashboard-screen" class="screen hidden">
+        <div class="header">
+            <h3 id="display-name">Hello, User</h3>
+            <button class="small-btn" onclick="openSettings()">⚙️</button>
+        </div>
+
+        <div class="progress-card">
+            <h1 id="progress-text">0 / 4000 ml</h1>
+            <div class="progress-bar-bg">
+                <div id="progress-fill" class="progress-bar-fill"></div>
+            </div>
+            <p id="message-text">Drink up!</p>
+        </div>
+
+        <div class="controls">
+            <button class="water-btn" onclick="addWater(250)">+ 250ml</button>
+            <button class="water-btn" onclick="addWater(500)">+ 500ml</button>
+            <button class="water-btn" onclick="addWater(1000)">+ 1 Lit</button>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="weeklyChart"></canvas>
+        </div>
+    </div>
+
+    <div id="success-modal" class="modal hidden">
+        <div class="modal-content" id="share-area">
+            <h2>🎉 Goal Complete!</h2>
+            <p id="success-user"></p>
+            <p>Great hydration streak!</p>
+            <h1>💧</h1>
+        </div>
+        <button onclick="shareSuccess()">Share Result</button>
+        <button onclick="closeModal()">Close</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
