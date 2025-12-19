@@ -2,71 +2,912 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Water Tracker</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hydrate - Water Tracker</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    
+    <!-- Confetti -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.2/confetti.browser.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --ocean-gradient: linear-gradient(135deg, #0093E9 0%, #80D0C7 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            --bg-gradient: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger: #ff6b6b;
+            --warning: #ffd93d;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            z-index: 0;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(50px, 50px) rotate(180deg); }
+        }
+        
+        /* Glass Container */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+        }
+        
+        /* Screen Container */
+        .screen {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Onboarding Screens */
+        .onboarding-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding-top: 60px;
+        }
+        
+        .onboarding-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .onboarding-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--ocean-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .onboarding-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        
+        .onboarding-card {
+            padding: 30px;
+            border-radius: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+        
+        /* Dashboard */
+        .dashboard-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .dashboard-header {
+            margin-bottom: 30px;
+        }
+        
+        .greeting {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .date-display {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        /* Progress Circle */
+        .progress-container {
+            padding: 30px;
+            border-radius: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .circular-progress {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+        }
+        
+        .circular-progress svg {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 12;
+        }
+        
+        .progress-fill {
+            fill: none;
+            stroke: url(#gradient);
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .progress-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .progress-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .goal-text {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+        
+        /* Status Card */
+        .status-card {
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .status-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .status-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+        
+        /* Quick Add Buttons */
+        .quick-add {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .add-btn {
+            padding: 20px;
+            border-radius: 20px;
+            border: none;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .add-btn i {
+            font-size: 2rem;
+            background: var(--ocean-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .add-btn span {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .add-btn:active {
+            transform: scale(0.9);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        /* History Section */
+        .history-section {
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+        
+        /* Success Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            padding: 40px 30px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 350px;
+            margin: 20px;
+            animation: scaleIn 0.5s ease;
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .success-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            animation: bounce 1s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .modal-content h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .modal-content p {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .modal-buttons {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .btn-success {
+            background: var(--success-gradient);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+        
+        /* Settings Button */
+        .settings-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .settings-btn:active {
+            transform: scale(0.9);
+        }
+        
+        /* Alert Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 16px 24px;
+            border-radius: 16px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        /* Ripple Effect */
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            width: 20px;
+            height: 20px;
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
-
-    <div id="settings-screen" class="screen">
-        <h2>Setup Profile</h2>
-        <input type="text" id="user-name" placeholder="Your Name">
-        
-        <label>Daily Goal (Liters)</label>
-        <select id="goal-liters">
-            <option value="3000">3 Liters</option>
-            <option value="4000">4 Liters</option>
-            <option value="5000">5 Liters</option>
-            <option value="6000">6 Liters</option>
-        </select>
-
-        <label>Wake Up Time</label>
-        <input type="time" id="start-time" value="08:00">
-        
-        <label>Bed Time</label>
-        <input type="time" id="end-time" value="23:00">
-
-        <button onclick="saveSettings()">Start Tracking</button>
-    </div>
-
-    <div id="dashboard-screen" class="screen hidden">
-        <div class="header">
-            <h3 id="display-name">Hello, User</h3>
-            <button class="small-btn" onclick="openSettings()">⚙️</button>
-        </div>
-
-        <div class="progress-card">
-            <h1 id="progress-text">0 / 4000 ml</h1>
-            <div class="progress-bar-bg">
-                <div id="progress-fill" class="progress-bar-fill"></div>
+    <!-- Onboarding Screen 1: Name -->
+    <div class="screen active" id="screen-name">
+        <div class="onboarding-container">
+            <div class="onboarding-header">
+                <h1>💧 Hydrate</h1>
+                <p>Stay hydrated, stay healthy</p>
             </div>
-            <p id="message-text">Drink up!</p>
-        </div>
-
-        <div class="controls">
-            <button class="water-btn" onclick="addWater(250)">+ 250ml</button>
-            <button class="water-btn" onclick="addWater(500)">+ 500ml</button>
-            <button class="water-btn" onclick="addWater(1000)">+ 1 Lit</button>
-        </div>
-
-        <div class="chart-container">
-            <canvas id="weeklyChart"></canvas>
+            <div class="onboarding-card glass">
+                <div class="form-group">
+                    <label>What's your name?</label>
+                    <input type="text" id="input-name" placeholder="Enter your name" autocomplete="off">
+                </div>
+                <button class="btn btn-primary" onclick="nextScreen('screen-goal')">Continue</button>
+            </div>
         </div>
     </div>
 
-    <div id="success-modal" class="modal hidden">
-        <div class="modal-content" id="share-area">
-            <h2>🎉 Goal Complete!</h2>
-            <p id="success-user"></p>
-            <p>Great hydration streak!</p>
-            <h1>💧</h1>
+    <!-- Onboarding Screen 2: Goal -->
+    <div class="screen" id="screen-goal">
+        <div class="onboarding-container">
+            <div class="onboarding-header">
+                <h1>🎯 Daily Goal</h1>
+                <p>How much water do you want to drink?</p>
+            </div>
+            <div class="onboarding-card glass">
+                <div class="form-group">
+                    <label>Select Your Goal</label>
+                    <select id="input-goal">
+                        <option value="3000">3 Liters (3000ml)</option>
+                        <option value="4000" selected>4 Liters (4000ml)</option>
+                        <option value="5000">5 Liters (5000ml)</option>
+                        <option value="6000">6 Liters (6000ml)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="nextScreen('screen-hours')">Continue</button>
+            </div>
         </div>
-        <button onclick="shareSuccess()">Share Result</button>
-        <button onclick="closeModal()">Close</button>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Onboarding Screen 3: Active Hours -->
+    <div class="screen" id="screen-hours">
+        <div class="onboarding-container">
+            <div class="onboarding-header">
+                <h1>⏰ Active Hours</h1>
+                <p>When do you want to track your water intake?</p>
+            </div>
+            <div class="onboarding-card glass">
+                <div class="form-group">
+                    <label>Start Time</label>
+                    <input type="time" id="input-start-time" value="08:00">
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="time" id="input-end-time" value="23:00">
+                </div>
+                <button class="btn btn-primary" onclick="completeOnboarding()">Start Tracking</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="screen" id="screen-dashboard">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <h1 class="greeting" id="greeting">Hi, User</h1>
+                <p class="date-display" id="date-display"></p>
+            </div>
+
+            <!-- Progress Circle -->
+            <div class="progress-container glass">
+                <div class="circular-progress">
+                    <svg width="200" height="200">
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#0093E9;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#80D0C7;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="progress-bg" cx="100" cy="100" r="90"></circle>
+                        <circle class="progress-fill" id="progress-circle" cx="100" cy="100" r="90"
+                                stroke-dasharray="565.48" stroke-dashoffset="565.48"></circle>
+                    </svg>
+                    <div class="progress-text">
+                        <span class="progress-amount" id="current-amount">0</span>
+                        <span class="progress-label">ml</span>
+                    </div>
+                </div>
+                <p class="goal-text">Goal: <span id="goal-display">4000</span> ml</p>
+            </div>
+
+            <!-- Status Card -->
+            <div class="status-card glass">
+                <div class="status-icon" id="status-icon">💧</div>
+                <p class="status-text" id="status-text">Loading...</p>
+            </div>
+
+            <!-- Quick Add Buttons -->
+            <div class="quick-add">
+                <button class="add-btn" onclick="addWater(250)">
+                    <i class="fas fa-mug-hot"></i>
+                    <span>250ml</span>
+                </button>
+                <button class="add-btn" onclick="addWater(500)">
+                    <i class="fas fa-bottle-water"></i>
+                    <span>500ml</span>
+                </button>
+                <button class="add-btn" onclick="addWater(1000)">
+                    <i class="fas fa-jug-detergent"></i>
+                    <span>1000ml</span>
+                </button>
+            </div>
+
+            <!-- History -->
+            <div class="history-section glass">
+                <h3 class="section-title">
+                    <i class="fas fa-chart-line"></i>
+                    Last 7 Days
+                </h3>
+                <div class="chart-container">
+                    <canvas id="history-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Button -->
+        <button class="settings-btn" onclick="resetApp()">
+            <i class="fas fa-rotate-right"></i>
+        </button>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="success-modal">
+        <div class="modal-content glass">
+            <div class="success-icon">🎉</div>
+            <h2>Goal Achieved!</h2>
+            <p>Congratulations! You've reached your daily water intake goal. Keep up the great work!</p>
+            <div class="modal-buttons">
+                <button class="btn btn-success" onclick="shareAchievement()">
+                    <i class="fas fa-share-nodes"></i> Share
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+<script>
+        // --- DATA MANAGEMENT ---
+        let userData = {
+            name: '',
+            dailyGoal: 4000,
+            startTime: '08:00',
+            endTime: '23:00',
+            currentIntake: 0,
+            lastReset: new Date().toDateString(),
+            history: {}, // Format: { "Fri Dec 19 2025": 2000 }
+            goalReached: false
+        };
+
+        let historyChart = null;
+
+        // --- INITIALIZATION ---
+        window.onload = init;
+
+        function init() {
+            const saved = localStorage.getItem('waterTrackerData');
+            if (saved) {
+                userData = JSON.parse(saved);
+                checkDayReset();
+                showScreen('screen-dashboard');
+                updateDashboard();
+                initChart();
+            } else {
+                showScreen('screen-name');
+            }
+        }
+
+        function checkDayReset() {
+            const today = new Date().toDateString();
+            if (userData.lastReset !== today) {
+                // It's a new day! Reset counters but keep history
+                userData.currentIntake = 0;
+                userData.goalReached = false;
+                userData.lastReset = today;
+                saveData();
+            }
+        }
+
+        // --- NAVIGATION ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function nextScreen(screenId) {
+            const currentScreen = document.querySelector('.screen.active').id;
+            
+            if (currentScreen === 'screen-name') {
+                const name = document.getElementById('input-name').value.trim();
+                if (!name) return showToast('Please enter your name');
+                userData.name = name;
+            }
+            
+            if (currentScreen === 'screen-goal') {
+                userData.dailyGoal = parseInt(document.getElementById('input-goal').value);
+            }
+            
+            showScreen(screenId);
+        }
+
+        function completeOnboarding() {
+            const startTime = document.getElementById('input-start-time').value;
+            const endTime = document.getElementById('input-end-time').value;
+            
+            if (!startTime || !endTime) return showToast('Please set your active hours');
+            
+            userData.startTime = startTime;
+            userData.endTime = endTime;
+            userData.lastReset = new Date().toDateString();
+            
+            saveData();
+            showScreen('screen-dashboard');
+            updateDashboard();
+            initChart();
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function updateDashboard() {
+            // 1. Text Updates
+            document.getElementById('greeting').textContent = `Hi, ${userData.name}`;
+            document.getElementById('date-display').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            document.getElementById('current-amount').textContent = userData.currentIntake;
+            document.getElementById('goal-display').textContent = userData.dailyGoal;
+            
+            // 2. Progress Circle Animation
+            const percentage = Math.min((userData.currentIntake / userData.dailyGoal) * 100, 100);
+            const circumference = 2 * Math.PI * 90; // r=90
+            const offset = circumference - (percentage / 100) * circumference;
+            document.getElementById('progress-circle').style.strokeDashoffset = offset;
+            
+            // 3. Status Text
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const now = new Date();
+            // Format time as HH:MM for string comparison
+            const currentTime = now.toTimeString().substring(0, 5);
+            
+            const isActiveHours = currentTime >= userData.startTime && currentTime <= userData.endTime;
+            
+            const statusIcon = document.getElementById('status-icon');
+            const statusText = document.getElementById('status-text');
+            
+            if (!isActiveHours) {
+                statusIcon.textContent = '🌙';
+                statusText.textContent = 'Rest Mode. Tracking paused.';
+                return;
+            }
+            
+            if (userData.currentIntake >= userData.dailyGoal) {
+                statusIcon.textContent = '✅';
+                statusText.textContent = 'Goal met! Stay hydrated.';
+                return;
+            }
+            
+            const remaining = userData.dailyGoal - userData.currentIntake;
+            const endHour = parseInt(userData.endTime.split(':')[0]);
+            const currentHour = now.getHours();
+            let hoursLeft = endHour - currentHour;
+            if (hoursLeft <= 0) hoursLeft = 1; // Prevent divide by zero
+
+            const perHour = Math.ceil(remaining / hoursLeft);
+            
+            statusIcon.textContent = '💧';
+            statusText.textContent = `Drink ~${perHour}ml/hr to hit goal.`;
+        }
+
+        function addWater(amount) {
+            const now = new Date();
+            const currentTime = now.toTimeString().substring(0, 5);
+            
+            // Allow adding water? (Check time)
+            if (currentTime < userData.startTime || currentTime > userData.endTime) {
+                return showToast('🌙 Sleeping time! Cannot track now.');
+            }
+            
+            userData.currentIntake += amount;
+            
+            // Save to history immediately
+            const todayKey = new Date().toDateString();
+            userData.history[todayKey] = userData.currentIntake;
+            
+            saveData();
+            updateDashboard();
+            updateHistoryChart();
+            showToast(`+${amount}ml added!`);
+            
+            // Check Success
+            if (userData.currentIntake >= userData.dailyGoal && !userData.goalReached) {
+                userData.goalReached = true;
+                saveData();
+                setTimeout(showSuccessModal, 500);
+            }
+        }
+
+        // --- CHART.JS LOGIC ---
+        function initChart() {
+            const ctx = document.getElementById('history-chart').getContext('2d');
+            
+            if (historyChart) historyChart.destroy();
+
+            const last7Days = getLast7Days();
+            const dataValues = last7Days.map(date => userData.history[date] || 0);
+            const labels = last7Days.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('en-US', { weekday: 'short' });
+            });
+
+            historyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Intake',
+                        data: dataValues,
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                        hoverBackgroundColor: '#fff',
+                        borderRadius: 6,
+                        barThickness: 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            display: false, 
+                            beginAtZero: true 
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 10 } },
+                            border: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateHistoryChart() {
+            if (historyChart) {
+                const last7Days = getLast7Days();
+                historyChart.data.datasets[0].data = last7Days.map(d => userData.history[d] || 0);
+                historyChart.update();
+            }
+        }
+
+        function getLast7Days() {
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                days.push(d.toDateString());
+            }
+            return days;
+        }
+
+        // --- STORAGE ---
+        function saveData() {
+            // Ensure today is recorded in history before saving
+            const today = new Date().toDateString();
+            userData.history[today] = userData.currentIntake;
+            localStorage.setItem('waterTrackerData', JSON.stringify(userData));
+        }
+
+        function resetApp() {
+            if(confirm("Reset all data and start over?")) {
+                localStorage.removeItem('waterTrackerData');
+                location.reload();
+            }
+        }
+
+        // --- UI HELPERS ---
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function showSuccessModal() {
+            document.getElementById('success-modal').classList.add('active');
+            fireConfetti();
+        }
+
+        function closeModal() {
+            document.getElementById('success-modal').classList.remove('active');
+        }
+
+        function fireConfetti() {
+            const colors = ['#667eea', '#764ba2', '#0093E9'];
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: colors });
+        }
+
+        async function shareAchievement() {
+            const text = `I drank ${userData.dailyGoal}ml of water today on Hydrate! 💧`;
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Hydrate Success', text: text });
+                } catch (err) { console.log('Share closed'); }
+            } else {
+                navigator.clipboard.writeText(text);
+                showToast('Text copied to clipboard!');
+            }
+        }
+    </script>
 </body>
 </html>

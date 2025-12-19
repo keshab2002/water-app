@@ -1,180 +1,186 @@
-// Import Capacitor Plugins (These work globally when built for Android)
-// Note: On web, some plugins might show warnings.
-
-const STORAGE_KEY = 'water_app_data';
-
-let appData = {
-    name: "",
+// --- CONFIGURATION ---
+const KEY = 'water_track_v2';
+let data = {
+    name: "User",
     goal: 4000,
-    startTime: "08:00",
-    endTime: "23:00",
+    start: "08:00",
+    end: "23:00",
     current: 0,
-    date: new Date().toDateString(),
-    history: [0, 0, 0, 0, 0, 0, 0] // Last 7 days
+    history: [0, 0, 0, 0, 0, 0, 0], // Last 7 days
+    lastDate: new Date().toDateString()
 };
+let myChart = null;
 
 // --- INITIALIZATION ---
 window.onload = () => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(KEY);
     if (saved) {
-        appData = JSON.parse(saved);
-        checkNewDay();
+        data = JSON.parse(saved);
+        checkNewDay(); // Reset if it's a new day
         showDashboard();
     } else {
-        document.getElementById('settings-screen').classList.remove('hidden');
+        document.getElementById('setup-screen').classList.remove('hidden');
     }
+    
+    // Update the "hourly tip" message every minute
+    setInterval(updateHourlyStatus, 60000);
 };
 
-// --- CORE LOGIC ---
+// --- CORE FUNCTIONS ---
 
-function saveSettings() {
-    const name = document.getElementById('user-name').value;
-    const goal = document.getElementById('goal-liters').value;
-    const start = document.getElementById('start-time').value;
-    const end = document.getElementById('end-time').value;
-
-    if (!name) return alert("Please enter your name");
-
-    appData.name = name;
-    appData.goal = parseInt(goal);
-    appData.startTime = start;
-    appData.endTime = end;
+function saveSetup() {
+    data.name = document.getElementById('user-name').value || "Friend";
+    data.goal = parseInt(document.getElementById('goal-liters').value);
+    data.start = document.getElementById('start-time').value;
+    data.end = document.getElementById('end-time').value;
     
-    saveData();
-    scheduleNotifications(); // Schedule the hourly reminders
+    save();
     showDashboard();
 }
 
 function showDashboard() {
-    document.getElementById('settings-screen').classList.add('hidden');
+    document.getElementById('setup-screen').classList.add('hidden');
     document.getElementById('dashboard-screen').classList.remove('hidden');
     
-    document.getElementById('display-name').innerText = `Hello, ${appData.name}`;
+    document.getElementById('disp-name').innerText = data.name;
+    document.getElementById('disp-date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric'});
+    document.getElementById('goal-display').innerText = data.goal;
+    
     updateUI();
-    renderChart();
-}
-
-function openSettings() {
-    document.getElementById('dashboard-screen').classList.add('hidden');
-    document.getElementById('settings-screen').classList.remove('hidden');
+    initChart();
 }
 
 function addWater(amount) {
-    appData.current += amount;
-    
-    // Check Goal
-    if (appData.current >= appData.goal && (appData.current - amount) < appData.goal) {
-        showSuccessModal();
+    // 1. Check Time Limits
+    const now = new Date();
+    const currentHour = now.getHours();
+    const startHour = parseInt(data.start.split(':')[0]);
+    const endHour = parseInt(data.end.split(':')[0]);
+
+    if (currentHour < startHour || currentHour >= endHour) {
+        alert(`You set your drinking hours between ${data.start} and ${data.end}. It's rest time!`);
+        return;
     }
+
+    // 2. Add Water
+    data.current += amount;
     
-    // Update Today's History
-    appData.history[6] = appData.current;
-    
-    saveData();
+    // 3. Check Success
+    if (data.current >= data.goal && (data.current - amount) < data.goal) {
+        showSuccess();
+    }
+
+    // 4. Update History (Today is index 6)
+    data.history[6] = data.current;
+
+    save();
     updateUI();
-    renderChart();
 }
 
 function updateUI() {
-    // Update Progress Bar
-    const percentage = Math.min((appData.current / appData.goal) * 100, 100);
-    document.getElementById('progress-fill').style.width = percentage + "%";
-    document.getElementById('progress-text').innerText = `${appData.current} / ${appData.goal} ml`;
+    // Update Numbers
+    document.getElementById('current-intake').innerText = data.current;
+    
+    // Update Chart if it exists
+    if (myChart) {
+        myChart.data.datasets[0].data = data.history;
+        myChart.update();
+    }
 
-    // Calculate Hourly Requirement logic
+    updateHourlyStatus();
+}
+
+function updateHourlyStatus() {
+    if (data.current >= data.goal) {
+        document.getElementById('hourly-tip').innerText = "🎉 Daily Goal Complete!";
+        document.getElementById('hourly-tip').style.background = "#d4edda";
+        document.getElementById('hourly-tip').style.color = "#155724";
+        return;
+    }
+
     const now = new Date();
-    const endParts = appData.endTime.split(':');
-    const endHour = parseInt(endParts[0]);
+    const endHour = parseInt(data.end.split(':')[0]);
     const currentHour = now.getHours();
     
-    let msg = "";
-    if (currentHour < endHour && appData.current < appData.goal) {
-        const remainingHours = endHour - currentHour;
-        const remainingWater = appData.goal - appData.current;
-        const perHour = Math.round(remainingWater / remainingHours);
-        msg = `Try to drink ${perHour}ml this hour to hit your goal!`;
-    } else if (appData.current >= appData.goal) {
-        msg = "Goal Reached! Great job!";
-    } else {
-        msg = "Day ended. Try again tomorrow!";
+    if (currentHour >= endHour) {
+        document.getElementById('hourly-tip').innerText = "😴 Tracking paused for the night.";
+        return;
     }
-    document.getElementById('message-text').innerText = msg;
+
+    const hoursLeft = endHour - currentHour;
+    const waterLeft = data.goal - data.current;
+    
+    // Avoid division by zero
+    if (hoursLeft <= 0) return;
+
+    const neededPerHour = Math.round(waterLeft / hoursLeft);
+    
+    document.getElementById('hourly-tip').innerText = 
+        `💡 Tip: Drink ~${neededPerHour}ml this hour to stay on track.`;
+    document.getElementById('hourly-tip').style.background = "#e2e8f0";
+    document.getElementById('hourly-tip').style.color = "#4a5568";
 }
 
 function checkNewDay() {
     const today = new Date().toDateString();
-    if (appData.date !== today) {
-        // Shift history: remove first day, add 0 for today
-        appData.history.shift();
-        appData.history.push(0);
-        appData.current = 0;
-        appData.date = today;
-        saveData();
+    if (data.lastDate !== today) {
+        // Shift array left (remove oldest day, add 0 for new day)
+        data.history.shift(); 
+        data.history.push(0);
+        data.current = 0;
+        data.lastDate = today;
+        save();
     }
 }
 
-function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+function save() {
+    localStorage.setItem(KEY, JSON.stringify(data));
 }
 
-// --- CAPACITOR FEATURES ---
-
-async function scheduleNotifications() {
-    // We need to use the Capacitor LocalNotifications plugin
-    const { LocalNotifications } = Capacitor.Plugins;
-
-    // Clear old ones
-    await LocalNotifications.cancel(await LocalNotifications.getPending());
-
-    const startHour = parseInt(appData.startTime.split(':')[0]);
-    const endHour = parseInt(appData.endTime.split(':')[0]);
-
-    let notifications = [];
-    let idCounter = 1;
-
-    for (let h = startHour; h < endHour; h++) {
-        notifications.push({
-            title: "Hydration Check 💧",
-            body: `Hey ${appData.name}, have you had water this hour?`,
-            id: idCounter++,
-            schedule: { 
-                on: { hour: h, minute: 0 },
-                repeats: true 
-            }
-        });
-    }
-
-    try {
-        await LocalNotifications.schedule({ notifications });
-        console.log("Notifications scheduled");
-    } catch (e) {
-        console.log("Notification setup skipped (Web Mode)");
-    }
+function openSetup() {
+    document.getElementById('dashboard-screen').classList.add('hidden');
+    document.getElementById('setup-screen').classList.remove('hidden');
 }
 
-// --- SHARING & CHART ---
-
-function renderChart() {
-    const ctx = document.getElementById('weeklyChart').getContext('2d');
+// --- CHART.JS LOGIC ---
+function initChart() {
+    const ctx = document.getElementById('historyChart').getContext('2d');
     
-    // Destroy previous chart if exists to avoid overlay
-    if (window.myChart) window.myChart.destroy();
+    if (myChart) myChart.destroy(); // Prevent duplicates
 
-    window.myChart = new Chart(ctx, {
+    // Create labels for last 7 days (e.g., "Mon", "Tue")
+    const labels = [];
+    for(let i=6; i>=0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+    }
+
+    myChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Today'],
+            labels: labels,
             datasets: [{
-                label: 'Intake (ml)',
-                data: appData.history,
-                backgroundColor: '#00a8cc'
+                label: 'ml Intake',
+                data: data.history,
+                backgroundColor: '#4FACFE',
+                borderRadius: 5
             }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { display: false },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
         }
     });
 }
 
-function showSuccessModal() {
-    document.getElementById('success-user').innerText = appData.name;
+// --- SHARING (MODAL) ---
+function showSuccess() {
+    document.getElementById('success-name').innerText = data.name;
     document.getElementById('success-modal').classList.remove('hidden');
 }
 
@@ -182,32 +188,19 @@ function closeModal() {
     document.getElementById('success-modal').classList.add('hidden');
 }
 
-async function shareSuccess() {
-    const { Share, Filesystem } = Capacitor.Plugins;
-    
-    // 1. Capture the div as canvas
-    const div = document.getElementById('share-area');
-    const canvas = await html2canvas(div);
-    const base64 = canvas.toDataURL("image/png");
-
-    // 2. Write file to phone storage (Required for sharing images on Android)
-    try {
-        const fileName = 'hydration-success.png';
-        const savedFile = await Filesystem.writeFile({
-            path: fileName,
-            data: base64,
-            directory: 'CACHE' // Save to temporary cache
-        });
-
-        // 3. Share
-        await Share.share({
-            title: 'Goal Reached!',
-            text: `I just drank ${appData.goal}ml of water today on WaterTracker!`,
-            url: savedFile.uri,
-            dialogTitle: 'Share your success'
-        });
-    } catch (e) {
-        console.error("Sharing failed", e);
-        alert("Sharing is only available on the actual app, not browser!");
+async function shareResult() {
+    // Basic Web Share API (Works on most modern mobile browsers)
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Hydration Goal!',
+                text: `I just crushed my water goal of ${data.goal}ml on HydroTrack! 💧`,
+                url: window.location.href
+            });
+        } catch (err) {
+            console.log("Share canceled");
+        }
+    } else {
+        alert("Screenshot this screen to share!");
     }
 }

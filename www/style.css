@@ -1,90 +1,104 @@
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f0f8ff;
-    margin: 0;
-    padding: 20px;
-    text-align: center;
-    color: #333;
+:root {
+    --primary: #4FACFE;
+    --primary-dark: #00F2FE;
+    --bg: #F0F4F8;
+    --card: #FFFFFF;
+    --text: #2D3748;
+    --text-light: #718096;
 }
 
-.screen { transition: opacity 0.3s; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg);
+    margin: 0;
+    padding: 0;
+    color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Layout Utilities */
+.screen {
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
 .hidden { display: none !important; }
 
-/* Input Styles */
-input, select {
-    width: 90%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 16px;
-}
-
-/* Buttons */
-button {
-    background-color: #007bff;
+/* Setup Screen */
+#setup-screen {
+    justify-content: center;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 10px;
-    width: 100%;
+}
+.logo-area h1 { font-size: 60px; margin: 0; }
+.input-group { margin-bottom: 20px; text-align: left; }
+label { display: block; font-size: 14px; margin-bottom: 8px; opacity: 0.9; }
+input, select {
+    width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px;
+    box-sizing: border-box; background: rgba(255,255,255,0.2); color: white;
+}
+input::placeholder { color: rgba(255,255,255,0.6); }
+/* Fix for dropdown arrow color */
+select { color: #333; background: white; } 
+
+.row { display: flex; gap: 15px; }
+.half { flex: 1; }
+
+.primary-btn {
+    background: white; color: var(--primary); font-weight: bold;
+    padding: 18px; border-radius: 15px; border: none; font-size: 18px;
+    margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-.water-btn {
-    width: 30%;
-    background-color: #00a8cc;
-    margin: 5px;
-    font-size: 14px;
+/* Dashboard */
+header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 25px;
+}
+.greeting { font-size: 24px; font-weight: 700; display: block; }
+.date { font-size: 14px; color: var(--text-light); }
+.icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+
+/* Cards */
+.card {
+    background: var(--card); border-radius: 20px; padding: 25px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center;
 }
 
-.small-btn {
-    width: auto;
-    background: transparent;
-    font-size: 20px;
-    color: #333;
+/* Circular Progress Logic (Simulated with Border) */
+.circle-progress {
+    width: 180px; height: 180px; margin: 0 auto 20px;
+    border-radius: 50%;
+    border: 8px solid var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    background: radial-gradient(circle, rgba(79,172,254,0.1) 0%, rgba(255,255,255,1) 70%);
 }
+.circle-inner h1 { font-size: 40px; margin: 0; color: var(--primary); }
+.sub-text { color: var(--text-light); font-size: 14px; margin: 5px 0 0; }
+.status-msg { font-weight: 500; color: #4a5568; background: #e2e8f0; padding: 10px; border-radius: 10px; font-size: 14px; }
 
-/* Progress */
-.progress-card {
-    background: white;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+/* Buttons Grid */
+.grid-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+.add-btn {
+    background: white; border: 2px solid var(--bg); border-radius: 15px;
+    padding: 15px 5px; font-size: 14px; font-weight: 600; color: var(--text);
+    transition: 0.2s;
 }
-
-.progress-bar-bg {
-    background-color: #e0e0e0;
-    border-radius: 10px;
-    height: 20px;
-    width: 100%;
-    overflow: hidden;
-}
-
-.progress-bar-fill {
-    background-color: #007bff;
-    height: 100%;
-    width: 0%;
-    transition: width 0.5s;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+.add-btn span { display: block; font-size: 24px; margin-bottom: 5px; }
+.add-btn:active { background: var(--primary); color: white; border-color: var(--primary); }
 
 /* Modal */
 .modal {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8);
-    display: flex; flex-direction: column;
-    justify-content: center; align-items: center;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 100;
 }
 .modal-content {
-    background: white; padding: 30px; border-radius: 15px; width: 80%;
-    text-align: center; margin-bottom: 20px;
+    background: white; width: 80%; padding: 30px; border-radius: 20px; text-align: center;
 }
+.share-btn { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; margin-top: 15px; font-size: 16px; }
+.close-btn { background: none; border: none; color: var(--text-light); margin-top: 15px; text-decoration: underline; }
